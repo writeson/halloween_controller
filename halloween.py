@@ -36,35 +36,53 @@ class Scene:
         ]
 
     def motion_detected(self):
+        """Add a "start animation" flag to the queue from
+        the gpiozero when_motion thread
+        """
         asyncio.run_coroutine_threadsafe(self.queue.put(True), self.loop)
 
     async def run_animation(self, animation: LED, duration: float, delay: float=0.0):
+        """Run an animation for some time after a delay
+
+        Args:
+            animation (LED): The LED (relay) to turn on
+            duration (float): How long to keep the relay on
+            delay (float, optional): The delay to wait before turning on. Defaults to 0.0.
+        """
         await asyncio.sleep(delay)
         animation.on()
         await asyncio.sleep(duration)
         animation.off()
 
     async def run(self):
+        """Run the "scene" This waits for a start True in the queue
+        and then builds a list of task animations to run. The projector
+        always runs for 2 minutes, the other are short because they
+        are momentary buttons that are activated after a delay.
+        """
         while True:
             start = await self.queue.get()
-            tasks = [self.run_animation(self.projector, 10.0)]
-            count = random.randint(2,3)
+            tasks = [self.run_animation(self.projector, 120.0)]
+            count = random.randint(3,5)
             tasks.extend([
                 self.run_animation(
                     animation, 
                     duration=0.5, 
-                    delay=round(random.uniform(1.0, 10.0), 1)
+                    delay=round(random.uniform(1.0, 20.0), 1)
                 )
                 for animation in random.sample(self.animations, count)
             ])
             await asyncio.gather(*tasks)
             # empty the queue so we don't have to many motion activated 
-            # scenes running
+            # scenes running one after another
             while not self.queue.empty():
                 self.queue.get_nowait()
 
 
 async def main():
+    """Create the asyncio queue, passing it to the scene
+    constructor and then run the scene asynchronously
+    """
     scene = Scene(asyncio.Queue())
     await asyncio.create_task(scene.run())
 
