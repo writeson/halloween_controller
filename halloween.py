@@ -23,9 +23,9 @@ class Scene:
         self.anim_7 = LED(26, active_high=False)
         self.anim_8 = LED(23, active_high=False)
         self.pir1 = MotionSensor(22)
-        # self.pir2 = MotionSensor(12)
-        # self.pir1.when_motion = self.motion_detected
-        # self.pir2.when_motion = self.motion_detected
+        self.pir2 = MotionSensor(12)
+        self.pir1.when_motion = self.motion_detected
+        self.pir2.when_motion = self.motion_detected
 
         self.animations = [
             self.scarecrow,
@@ -38,7 +38,8 @@ class Scene:
     def motion_detected(self):
         asyncio.run_coroutine_threadsafe(self.queue.put(True), self.loop)
 
-    async def run_animation(self, animation: LED, duration: float):
+    async def run_animation(self, animation: LED, duration: float, delay: float=0.0):
+        await asyncio.sleep(delay)
         animation.on()
         await asyncio.sleep(duration)
         animation.off()
@@ -46,10 +47,14 @@ class Scene:
     async def run(self):
         while True:
             start = await self.queue.get()
-            tasks = [self.run_animation(self.projector, 1.0)]
+            tasks = [self.run_animation(self.projector, 10.0)]
             count = random.randint(2,3)
             tasks.extend([
-                self.run_animation(animation, duration=0.5)
+                self.run_animation(
+                    animation, 
+                    duration=0.5, 
+                    delay=round(random.uniform(1.0, 10.0), 1)
+                )
                 for animation in random.sample(self.animations, count)
             ])
             await asyncio.gather(*tasks)
@@ -58,10 +63,9 @@ class Scene:
             while not self.queue.empty():
                 self.queue.get_nowait()
 
+
 async def main():
-    queue = asyncio.Queue()
-    scene = Scene(queue)
-    await queue.put(True)
+    scene = Scene(asyncio.Queue())
     await asyncio.create_task(scene.run())
 
 
