@@ -31,7 +31,6 @@ class Scene:
             self.scarecrow,
             self.black_ghoul,
             self.white_ghoul,
-            self.jack_o_lanterns,
             self.mirror,
         ]
 
@@ -62,7 +61,10 @@ class Scene:
         """
         while True:
             start = await self.queue.get()
-            tasks = [self.run_animation(self.projector, 120.0)]
+            tasks = [
+                self.run_animation(self.projector, 120.0),
+                self.run_animation(self.jack_o_lanterns, 0.5),
+            ]
             count = random.randint(3,5)
             tasks.extend([
                 self.run_animation(
